@@ -1,0 +1,43 @@
+bot.py
+from pyrogram import Client, filters
+import sqlite3
+
+api_id = 24873131   # अपना api_id डालो
+api_hash = "1f5e91750a24c7ef3dcc30e1f34c7f71"
+bot_token = "8115308580:AAEzx8hZf8lTy-Bx_OSL3kvVnGmMtjp8xB8"
+
+app = Client(
+    "anime_bot",
+    api_id=api_id,
+    api_hash=api_hash,
+    bot_token=bot_token
+)
+
+# Database
+db = sqlite3.connect("anime.db", check_same_thread=False)
+cur = db.cursor()
+cur.execute("CREATE TABLE IF NOT EXISTS anime(name TEXT, link TEXT)")
+db.commit()
+
+# Admin command: add anime
+@app.on_message(filters.command("add") & filters.user([5029489287]))
+async def add_anime(client, message):
+    try:
+        _, name, link = message.text.split(" ", 2)
+        cur.execute("INSERT INTO anime VALUES (?,?)", (name.lower(), link))
+        db.commit()
+        await message.reply("✅ Anime added to database")
+    except:
+        await message.reply("❌ Use: /add anime_name link")
+
+# Search anime in group
+@app.on_message(filters.text & filters.group)
+async def search_anime(client, message):
+    text = message.text.lower()
+    cur.execute("SELECT link FROM anime WHERE name=?", (text,))
+    result = cur.fetchone()
+
+    if result:
+        await message.reply(f"🎬 Anime Found!\n🔗 {result[0]}")
+
+app.run()
